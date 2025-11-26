@@ -373,6 +373,9 @@
     $('#infoBtn').addEventListener('click', ()=>{
       alert('Учебная симуляция: имитирует внешний вид блокировки, но не препятствует выходу. Нажмите «Разблокировать», чтобы закрыть оверлей.');
     });
+<a href="locker.html" download="locker.html">
+  <button>Скачать симулятор</button>
+</a>
   </script>
 </body>
 </html>
