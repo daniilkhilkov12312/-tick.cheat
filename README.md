@@ -1,2 +1,2 @@
-# --virus-top-simulator
-test my first virus
+# чит на майнкрафт tick.cheat
+
