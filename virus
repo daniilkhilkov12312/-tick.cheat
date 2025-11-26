@@ -108,7 +108,6 @@
       </div>
     </section>
 
-    <!-- Центральный экран: иконка и «стрелки» -->
     <section class="card">
       <h2>Иконка и экран приложения</h2>
       <div class="row" style="align-items:center; margin-bottom:8px;">
@@ -375,10 +374,23 @@
     });
 <a href="locker.html" download="locker.html">
   <button>Скачать симулятор</button>
+href="locker.html" download="locker.html"
+  <button>Скачать симулятор</button>
 </a>
+virus-top-simulator/
+├── index.html
+├── locker.html
+└── virus-test.txt
+<h2>Скачать файл симуляции</h2>
+<a href="virus-test.txt" download>
+  <button class="btn btn-primary">Скачать virus-test.txt</button>
+</a>
+
+<a href="locker.html" download>
+  <button class="btn btn-warn">Скачать WinLocker симулятор</button>
+</a>
+
   </script>
 </body>
 </html>
-<a href="locker.html" download="locker.html">
-  <button>Скачать симулятор</button>
-</a>
+
