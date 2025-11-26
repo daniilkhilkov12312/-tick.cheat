@@ -1,0 +1,378 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8" />
+  <title>APP NAME: virus top — учебный симулятор</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <style>
+    :root{
+      --bg:#0e0f13; --panel:#151820; --accent:#2ea043; --warn:#d43f3f; --text:#e6e6e6; --muted:#9aa0a6;
+      --blue:#3ea6ff; --border:#222838;
+    }
+    *{box-sizing:border-box}
+    body{
+      margin:0; font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif;
+      background:linear-gradient(135deg,#0a0b10,#131521 60%,#0a0b10); color:var(--text);
+    }
+    header{
+      padding:12px 16px; background:#0b0d14; border-bottom:1px solid #1f2430; display:flex; align-items:center; gap:12px; flex-wrap:wrap;
+    }
+    header .title{font-weight:700; letter-spacing:0.4px}
+    header .badge{font-size:12px; padding:4px 8px; border-radius:999px; background:#1b212c; color:var(--muted)}
+    main{display:grid; grid-template-columns: 320px 1fr 320px; gap:16px; padding:16px}
+    .card{background:var(--panel); border:1px solid var(--border); border-radius:12px; padding:12px}
+    h2{font-size:16px; margin:4px 0 8px}
+    .muted{color:var(--muted); font-size:13px}
+    .btn{display:inline-flex; align-items:center; gap:8px; border:none; border-radius:10px; padding:10px 12px; font-weight:600; cursor:pointer; transition:transform .05s ease, opacity .2s}
+    .btn:active{transform:scale(0.98)}
+    .btn-primary{background:var(--accent); color:#08110b}
+    .btn-warn{background:var(--warn); color:#fff}
+    .btn-ghost{background:#1c2230; color:#cfe3ff}
+    .btn-outline{background:transparent; border:1px solid #2b3344; color:#cde1ff}
+    .stack{display:flex; flex-direction:column; gap:8px}
+    .row{display:flex; gap:8px; flex-wrap:wrap}
+    .pill{display:inline-block; padding:6px 10px; border-radius:999px; background:#1e2634; color:#cfe3ff; font-size:12px; margin-right:6px}
+    .screen{height:60vh; min-height:420px; background:#000; border:2px solid #222; border-radius:12px; position:relative; overflow:hidden}
+    .screen .scroll{position:absolute; right:8px; top:8px; display:flex; flex-direction:column; gap:8px}
+    .screen .arrow{width:36px; height:36px; border-radius:8px; background:#1d232f; color:#bcd0ff; border:1px solid #2a3242; display:flex; align-items:center; justify-content:center; cursor:pointer}
+    .screen .content{padding:16px; height:100%; overflow:auto; color:#cfe3ff}
+    .log{height:24vh; min-height:160px; overflow:auto; border:1px dashed #2b3344; border-radius:10px; padding:8px; background:#11161f;
+         font-family:ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace; font-size:12px; line-height:1.4}
+    .log-entry{margin:0 0 6px; color:#b6c2d2}
+    .log-entry .time{color:#7f8a99}
+    .notif{border-left:4px solid var(--warn); background:#1a1f2b; padding:10px; border-radius:8px; margin-bottom:10px}
+    .safe{border-left:4px solid var(--accent); background:#17231b; padding:10px; border-radius:8px; margin-top:10px}
+    .switch{display:flex; align-items:center; gap:8px; padding:8px; border-radius:10px; background:#182130; margin-top:8px}
+    .toggle{width:44px; height:24px; border-radius:12px; background:#2b3446; position:relative; cursor:pointer}
+    .toggle::after{content:""; position:absolute; top:3px; left:3px; width:18px; height:18px; border-radius:50%; background:#cfe3ff; transition:left .2s}
+    .toggle.on{background:#1e7c46}
+    .toggle.on::after{left:23px}
+    .danger-text{color:#ff9a9a}
+    .ok-text{color:#9affc1}
+    footer.footer{display:flex; gap:8px; padding:12px; border-top:1px solid #1f2430; background:#0b0d14; position:sticky; bottom:0}
+    @media (max-width:1080px){ main{grid-template-columns:1fr} footer.footer{position:static} }
+
+    /* WinLocker overlay (симуляция) */
+    #lockerOverlay{
+      position:fixed; inset:0; background:#000; color:#f33; display:none; align-items:center; justify-content:center; flex-direction:column; text-align:center; z-index:9999;
+    }
+    #lockerOverlay .box{max-width:640px; padding:24px; border:1px solid #f33; border-radius:12px; background:#080808}
+    #lockerOverlay .title{font-size:28px; margin-bottom:8px}
+    #lockerOverlay .timer{font-size:22px; color:#ffcdcd}
+    #lockerOverlay .actions{margin-top:16px}
+    #lockerOverlay button{margin:6px; padding:10px 16px; font-size:16px; border-radius:8px; cursor:pointer}
+    #lockerOverlay .unlock{background:#24d464; color:#04150a; border:none; font-weight:700}
+    #lockerOverlay .info{background:#1c2230; color:#cfe3ff; border:1px solid #2a3242}
+  </style>
+</head>
+<body>
+  <header>
+    <div class="title">APP NAME: virus top</div>
+    <div class="badge">Учебный режим</div>
+    <div class="badge">12:08 • Батарея 100%</div>
+  </header>
+
+  <main>
+    <!-- Левая панель: разрешения и уведомления -->
+    <section class="card stack">
+      <h2>Разрешения (симуляция)</h2>
+      <p class="muted">Все действия фиктивны и ничего не делают с устройством.</p>
+      <div class="row">
+        <button class="btn btn-ghost" data-perm="Камера">Запросить камеру</button>
+        <button class="btn btn-ghost" data-perm="Микрофон">Запросить микрофон</button>
+        <button class="btn btn-ghost" data-perm="Контакты">Запросить контакты</button>
+        <button class="btn btn-ghost" data-perm="Хранилище">Запросить хранилище</button>
+        <button class="btn btn-ghost" data-perm="Геолокация">Запросить геолокацию</button>
+      </div>
+
+      <h2>Поддельные уведомления</h2>
+      <div class="stack">
+        <button class="btn btn-warn" id="notifyBad">Показать «устройство заражено»</button>
+        <button class="btn btn-primary" id="notifyFix">Показать «совет по защите»</button>
+      </div>
+      <div id="notifArea" class="stack" aria-live="polite"></div>
+
+      <div class="switch">
+        <div>ПЕРЕКЛЮЧИТЬ ОБУЧЕНИЕ</div>
+        <div id="trainingToggle" class="toggle on" role="switch" aria-checked="true" tabindex="0" title="Вкл/Выкл учебный режим"></div>
+      </div>
+
+      <div class="safe" id="tips">
+        <strong>Советы безопасности:</strong>
+        <ul>
+          <li>Проверяйте, зачем приложению нужны разрешения.</li>
+          <li>Не переходите по подозрительным ссылкам в уведомлениях.</li>
+          <li>Читайте отзывы и источник установки приложений.</li>
+          <li>Отключайте ненужные автозапуски и уведомления.</li>
+        </ul>
+      </div>
+    </section>
+
+    <!-- Центральный экран: иконка и «стрелки» -->
+    <section class="card">
+      <h2>Иконка и экран приложения</h2>
+      <div class="row" style="align-items:center; margin-bottom:8px;">
+        <span class="pill">Иконка приложения — ID изображения здесь</span>
+        <span class="pill">Версия: 1.0 (учебный симулятор)</span>
+        <button class="btn btn-warn" id="openLocker">Имитация блокировки (WinLocker)</button>
+      </div>
+
+      <div class="screen" id="screen">
+        <div class="scroll">
+          <button class="arrow" id="scrollUp" title="Прокрутка вверх">▲</button>
+          <button class="arrow" id="scrollDown" title="Прокрутка вниз">▼</button>
+        </div>
+        <div class="content" id="screenContent">
+          <h3 style="margin-top:0;">Добро пожаловать в «Virus Top» (учебный)</h3>
+          <p>Этот экран демонстрирует, как может выглядеть подозрительное приложение: таймер «заражения», агрессивные запросы разрешений, тревожные уведомления.</p>
+
+          <div class="stack">
+            <div><strong>Таймер «заражения» (фиктивный):</strong> <span class="timer" id="timer">00:30</span></div>
+            <div><strong>Статус:</strong> <span id="status" class="danger-text">⚠ Подозрительная активность (симуляция)</span></div>
+          </div>
+
+          <div class="stack" style="margin-top:12px;">
+            <button class="btn btn-warn" id="startTimer">Запустить обратный отсчёт</button>
+            <button class="btn btn-primary" id="stopTimer">Остановить «вирус» (показать обучение)</button>
+          </div>
+
+          <div class="safe hidden" id="eduBlock">
+            <strong>Что делать пользователю:</strong>
+            <ul>
+              <li>Закрыть приложение и отключить уведомления.</li>
+              <li>Проверить и отозвать лишние разрешения в настройках.</li>
+              <li>Удалить программу и проверить устройство штатными средствами.</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Правая панель: журнал и действия -->
+    <section class="card stack">
+      <h2>Журнал действий</h2>
+      <div id="log" class="log" aria-live="polite"></div>
+
+      <h2>Действия</h2>
+      <div class="stack">
+        <button class="btn btn-outline" id="saveExit">СОХРАНИТЬ И ВЫЙТИ</button>
+        <button class="btn btn-outline" id="downloadTry">СКАЧАТЬ И ПОПРОБОВАТЬ</button>
+        <button class="btn btn-outline" id="toggleEdu">ПЕРЕКЛЮЧИТЬ ОБУЧЕНИЕ</button>
+      </div>
+
+      <div class="muted" style="margin-top:8px;">
+        Примечание: все функции — учебные. Никаких реальных изменений на устройстве не выполняется.
+      </div>
+
+      <div class="stack" style="margin-top:8px;">
+        <div><strong>Прогресс:</strong> <span class="progress" id="progress">0/3 шагов</span></div>
+      </div>
+    </section>
+  </main>
+
+  <footer class="footer">
+    <button class="btn btn-ghost" id="navBack">◀ Назад</button>
+    <button class="btn btn-ghost" id="navHome">● Домой</button>
+    <button class="btn btn-ghost" id="navRecent">■ Недавние</button>
+  </footer>
+
+  <!-- WinLocker overlay (симуляция) -->
+  <div id="lockerOverlay" aria-hidden="true">
+    <div class="box">
+      <div class="title">⚠ Ваш компьютер заблокирован ⚠</div>
+      <div class="timer" id="lockerTimer">00:30</div>
+      <p>Это учебная имитация WinLocker. Ничего реально не блокируется.</p>
+      <div class="actions">
+        <button class="unlock" id="unlockBtn">Разблокировать</button>
+        <button class="info" id="infoBtn">Что это?</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // Helpers
+    const $ = sel => document.querySelector(sel);
+    const logEl = $('#log');
+    const timerEl = $('#timer');
+    const statusEl = $('#status');
+    const screenContent = $('#screenContent');
+    const notifArea = $('#notifArea');
+
+    function ts(){
+      const d = new Date();
+      const hh = String(d.getHours()).padStart(2,'0');
+      const mm = String(d.getMinutes()).padStart(2,'0');
+      const ss = String(d.getSeconds()).padStart(2,'0');
+      return `${hh}:${mm}:${ss}`;
+    }
+    function log(msg){
+      const p = document.createElement('p');
+      p.className = 'log-entry';
+      p.innerHTML = `<span class="time">[${ts()}]</span> ${msg}`;
+      logEl.prepend(p);
+    }
+
+    // Permission simulation
+    document.querySelectorAll('[data-perm]').forEach(btn=>{
+      btn.addEventListener('click', ()=>{
+        const perm = btn.getAttribute('data-perm');
+        const granted = Math.random() > 0.4; // случайное «решение»
+        const result = granted ? 'разрешено' : 'отклонено';
+        log(`Запрошено разрешение: ${perm} — ${result} (симуляция)`);
+      });
+    });
+
+    // Fake notifications
+    $('#notifyBad').addEventListener('click', ()=>{
+      const box = document.createElement('div');
+      box.className = 'notif';
+      box.innerHTML = `<strong>Устройство заражено!</strong> Немедленно установите «Антивирус X». <em>(фиктивное уведомление)</em>`;
+      notifArea.prepend(box);
+      log('Показано тревожное уведомление (фиктивное)');
+    });
+
+    $('#notifyFix').addEventListener('click', ()=>{
+      const box = document.createElement('div');
+      box.className = 'safe';
+      box.innerHTML = `<strong>Совет:</strong> проверяйте источник приложений, минимизируйте разрешения, обновляйте систему. <em>(учебное уведомление)</em>`;
+      notifArea.prepend(box);
+      log('Показано обучающее уведомление (фиктивное)');
+    });
+
+    // Training toggle
+    const trainingToggle = $('#trainingToggle');
+    function setTraining(on){
+      trainingToggle.classList.toggle('on', on);
+      trainingToggle.setAttribute('aria-checked', on ? 'true' : 'false');
+      log(`Учебный режим: ${on ? 'включен' : 'выключен'}`);
+    }
+    trainingToggle.addEventListener('click', ()=> setTraining(!trainingToggle.classList.contains('on')));
+    trainingToggle.addEventListener('keydown', (e)=>{
+      if(e.key === 'Enter' || e.key === ' '){
+        e.preventDefault(); setTraining(!trainingToggle.classList.contains('on'));
+      }
+    });
+
+    // Timer simulation (центр)
+    let timerId = null;
+    let remaining = 30;
+    function updateTimer(){
+      timerEl.textContent = `00:${String(remaining).padStart(2,'0')}`;
+    }
+    updateTimer();
+
+    $('#startTimer').addEventListener('click', ()=>{
+      if(timerId) return;
+      log('Запущен обратный отсчёт (симуляция)');
+      statusEl.textContent = '⚠ Подозрительная активность (симуляция)';
+      statusEl.className = 'danger-text';
+      remaining = 30; updateTimer();
+      timerId = setInterval(()=>{
+        remaining--;
+        updateTimer();
+        if(remaining <= 0){
+          clearInterval(timerId); timerId = null;
+          statusEl.textContent = 'ℹ Таймер завершён. Рекомендуется перейти к обучению.';
+          statusEl.className = 'ok-text';
+          log('Отсчёт завершён. Предложено обучение.');
+        }
+      }, 1000);
+    });
+
+    $('#stopTimer').addEventListener('click', ()=>{
+      if(timerId){ clearInterval(timerId); timerId = null; }
+      statusEl.textContent = '✅ Учебный режим активен. Симуляция остановлена.';
+      statusEl.className = 'ok-text';
+      $('#eduBlock').classList.remove('hidden');
+      log('Симуляция «вируса» остановлена. Показан обучающий блок.');
+      incProgress();
+    });
+
+    // Screen arrows
+    $('#scrollUp').addEventListener('click', ()=> {
+      screenContent.scrollBy({top:-120, behavior:'smooth'});
+      log('Прокрутка экрана вверх');
+    });
+    $('#scrollDown').addEventListener('click', ()=> {
+      screenContent.scrollBy({top:120, behavior:'smooth'});
+      log('Прокрутка экрана вниз');
+    });
+
+    // Actions
+    $('#saveExit').addEventListener('click', ()=>{
+      const blob = new Blob([logEl.innerText || 'Журнал пуст'], {type:'text/plain'});
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(blob);
+      a.download = 'virus-top-log.txt';
+      a.click();
+      log('Журнал сохранён в файл (симуляция). Можно закрыть страницу.');
+      incProgress();
+    });
+
+    $('#downloadTry').addEventListener('click', ()=>{
+      const html = document.documentElement.outerHTML;
+      const blob = new Blob([html], {type:'text/html'});
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(blob);
+      a.download = 'virus-top-simulator.html';
+      a.click();
+      log('Скачан текущий симулятор как HTML-файл.');
+      incProgress();
+    });
+
+    $('#toggleEdu').addEventListener('click', ()=>{
+      const tips = $('#tips');
+      const hidden = tips.classList.toggle('hidden');
+      log(`Советы безопасности: ${hidden ? 'скрыты' : 'показаны'}`);
+    });
+
+    // Mock navigation
+    $('#navBack').addEventListener('click', ()=> log('Навигация: назад (фиктивно)'));
+    $('#navHome').addEventListener('click', ()=> log('Навигация: домой (фиктивно)'));
+    $('#navRecent').addEventListener('click', ()=> log('Навигация: недавние (фиктивно)'));
+
+    // Progress tracker
+    const progressEl = $('#progress');
+    let progress = 0;
+    function incProgress(){
+      progress = Math.min(3, progress + 1);
+      progressEl.textContent = `${progress}/3 шагов`;
+    }
+
+    // WinLocker overlay simulation
+    const lockerOverlay = $('#lockerOverlay');
+    const lockerTimerEl = $('#lockerTimer');
+    let lockerTimerId = null;
+    let lockerSec = 30;
+
+    function openLocker(){
+      lockerOverlay.style.display = 'flex';
+      lockerOverlay.setAttribute('aria-hidden','false');
+      lockerSec = 30;
+      lockerTimerEl.textContent = "00:30";
+      if(lockerTimerId) clearInterval(lockerTimerId);
+      lockerTimerId = setInterval(()=>{
+        lockerSec--; lockerTimerEl.textContent = "00:"+(lockerSec<10?"0":"")+lockerSec;
+        if(lockerSec<=0){ clearInterval(lockerTimerId); lockerTimerId = null; }
+      }, 1000);
+      log('Открыта имитация WinLocker (учебная)');
+    }
+
+    function closeLocker(withMsg){
+      if(lockerTimerId){ clearInterval(lockerTimerId); lockerTimerId = null; }
+      lockerOverlay.style.display = 'none';
+      lockerOverlay.setAttribute('aria-hidden','true');
+      if(withMsg){
+        alert('✅ Это была безопасная симуляция WinLocker. В реальности такие программы опасны.');
+      }
+      log('Имитация WinLocker закрыта.');
+    }
+
+    $('#openLocker').addEventListener('click', openLocker);
+    $('#unlockBtn').addEventListener('click', ()=> closeLocker(true));
+    $('#infoBtn').addEventListener('click', ()=>{
+      alert('Учебная симуляция: имитирует внешний вид блокировки, но не препятствует выходу. Нажмите «Разблокировать», чтобы закрыть оверлей.');
+    });
+  </script>
+</body>
+</html>
